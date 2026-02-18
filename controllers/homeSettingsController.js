@@ -1,22 +1,10 @@
 import db from '../config/database.js';
-import fs from 'fs';
-import path from 'path';
-
-const _reqLogPath = path.join(process.cwd(), 'backend', 'logs', 'request-debug.log');
-const _appendReqLog = (msg) => {
-  try {
-    fs.appendFileSync(_reqLogPath, `${new Date().toISOString()} ${msg}\n`);
-  } catch (err) {
-    console.error('Failed to write request-debug log:', err && (err.stack || err));
-  }
-};
 
 // Get home settings
 export const getHomeSettings = async (req, res) => {
   try {
     const dbg = `[DEBUG] getHomeSettings request ip=${req.ip} headers=${JSON.stringify({host: req.headers.host, referer: req.headers.referer, forwarded: req.headers['x-forwarded-for']})}`;
     console.log(dbg);
-    _appendReqLog(dbg);
     const [rows] = await db.query(
       'SELECT * FROM home_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1'
     );

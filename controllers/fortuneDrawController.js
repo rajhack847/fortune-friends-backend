@@ -1,22 +1,10 @@
 import pool from '../config/database.js';
 import { selectWinner, calculateUserWeight, getAllEligibleUsers } from '../utils/fortuneDrawAlgorithm.js';
-import fs from 'fs';
-import path from 'path';
-
-const _reqLogPath = path.join(process.cwd(), 'backend', 'logs', 'request-debug.log');
-const _appendReqLog = (msg) => {
-  try {
-    fs.appendFileSync(_reqLogPath, `${new Date().toISOString()} ${msg}\n`);
-  } catch (err) {
-    console.error('Failed to write request-debug log:', err && (err.stack || err));
-  }
-};
 
 export const getActiveLottery = async (req, res) => {
   try {
     const dbg = `[DEBUG] getActiveLottery request ip=${req.ip} headers=${JSON.stringify({host: req.headers.host, referer: req.headers.referer, forwarded: req.headers['x-forwarded-for']})}`;
     console.log(dbg);
-    _appendReqLog(dbg);
     const [events] = await pool.query(
       'SELECT * FROM fortune_draw_events WHERE status = ? ORDER BY ticket_price ASC',
       ['active']
@@ -227,7 +215,6 @@ export const getWinners = async (req, res) => {
   try {
     const dbg = `[DEBUG] getWinners request ip=${req.ip} qs=${JSON.stringify(req.query)} headers=${JSON.stringify({host: req.headers.host, referer: req.headers.referer})}`;
     console.log(dbg);
-    _appendReqLog(dbg);
     const { fortuneDrawEventId } = req.query;
     
     let query = `
@@ -256,7 +243,6 @@ export const getWinners = async (req, res) => {
     });
   } catch (error) {
     console.error('Get winners error:', error && (error.stack || error));
-    _appendReqLog(`[ERROR] getWinners error: ${error && (error.stack || error)}`);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch winners',

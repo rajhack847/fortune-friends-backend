@@ -279,12 +279,12 @@ export const getUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    const [stats] = await pool.query(
-      'SELECT * FROM user_statistics WHERE id = ?',
+    const [users] = await pool.query(
+      'SELECT id, user_id, name, email, mobile, address, pincode, profile_picture_url, referral_code, referral_link, created_at FROM users WHERE id = ?',
       [userId]
     );
     
-    if (stats.length === 0) {
+    if (users.length === 0) {
       return res.status(404).json({ 
         success: false, 
         message: 'User not found' 
@@ -293,7 +293,7 @@ export const getUserProfile = async (req, res) => {
     
     res.json({
       success: true,
-      data: stats[0]
+      data: users[0]
     });
   } catch (error) {
     console.error('Get profile error:', error);

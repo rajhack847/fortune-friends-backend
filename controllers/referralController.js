@@ -1,20 +1,9 @@
 import pool from '../config/database.js';
-import fs from 'fs';
-import path from 'path';
-
-const _reqLogPath = path.join(process.cwd(), 'backend', 'logs', 'request-debug.log');
-const _appendReqLog = (msg) => {
-  try {
-    fs.appendFileSync(_reqLogPath, `${new Date().toISOString()} ${msg}\n`);
-  } catch (err) {
-    console.error('Failed to write request-debug log:', err && (err.stack || err));
-  }
-};
 
 export const getUserReferrals = async (req, res) => {
   try {
     if (!req.user) {
-      _appendReqLog('[WARN] getUserReferrals called without authentication');
+      console.log('[WARN] getUserReferrals called without authentication');
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
@@ -37,7 +26,6 @@ export const getUserReferrals = async (req, res) => {
     });
   } catch (error) {
     console.error('Get referrals error:', error);
-    _appendReqLog(`[ERROR] getUserReferrals error: ${error && (error.stack || error.message || String(error))}`);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch referrals',
@@ -49,7 +37,7 @@ export const getUserReferrals = async (req, res) => {
 export const getReferralStats = async (req, res) => {
   try {
     if (!req.user) {
-      _appendReqLog('[WARN] getReferralStats called without authentication');
+      console.log('[WARN] getReferralStats called without authentication');
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
@@ -72,7 +60,6 @@ export const getReferralStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Get referral stats error:', error);
-    _appendReqLog(`[ERROR] getReferralStats error: ${error && (error.stack || error.message || String(error))}`);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch referral statistics',
