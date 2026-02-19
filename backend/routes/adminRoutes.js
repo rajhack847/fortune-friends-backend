@@ -6,7 +6,8 @@ import { fileURLToPath } from 'url';
 import { 
   adminLogin, 
   createLotteryEvent, 
-  updateLotteryEvent, 
+  updateLotteryEvent,
+  deleteLotteryEvent, 
   getAllLotteryEvents, 
   markPrizeDelivered,
   getDashboardStats,
@@ -90,6 +91,7 @@ router.get('/users/:id/public', (req, res) => {
 router.get('/lottery-events', authenticateAdmin, getAllLotteryEvents);
 router.post('/lottery-events', authenticateAdmin, requireRole('super_admin', 'admin'), logAdminAction('CREATE_LOTTERY_EVENT', 'lottery_event'), carImageUpload.single('carImage'), createLotteryEvent);
 router.patch('/lottery-events/:id', authenticateAdmin, requireRole('super_admin', 'admin'), logAdminAction('UPDATE_LOTTERY_EVENT', 'lottery_event'), carImageUpload.single('carImage'), updateLotteryEvent);
+router.delete('/lottery-events/:id', authenticateAdmin, requireRole('super_admin', 'admin'), logAdminAction('DELETE_LOTTERY_EVENT', 'lottery_event'), deleteLotteryEvent);
 router.patch('/winners/:winnerId/deliver', authenticateAdmin, requireRole('super_admin', 'admin'), logAdminAction('MARK_PRIZE_DELIVERED', 'winner'), markPrizeDelivered);
 
 // User management routes

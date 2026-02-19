@@ -324,6 +324,40 @@ export const updateLotteryEvent = async (req, res) => {
   }
 };
 
+export const deleteLotteryEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if lottery has any tickets/payments
+    const [payments] = await pool.query(
+      'SELECT COUNT(*) as count FROM payments WHERE fortune_draw_event_id = ?',
+      [id]
+    );
+    
+    if (payments[0].count > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete: ${payments[0].count} payment(s) exist for this event`
+      });
+    }
+    
+    // Delete the lottery event
+    await pool.query('DELETE FROM fortune_draw_events WHERE id = ?', [id]);
+    
+    res.json({
+      success: true,
+      message: 'Lottery event deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete lottery error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete lottery event',
+      error: error.message
+    });
+  }
+};
+
   // Admin accounts management
   export const getAdminAccounts = async (req, res) => {
     try {
