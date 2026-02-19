@@ -42,7 +42,8 @@ router.get(
         id: req.user.id,
         email: req.user.email,
         name: req.user.name,
-        referralCode: req.user.referral_code
+        referralCode: req.user.referral_code,
+        referralLink: req.user.referral_link
       }))}`);
     } catch (error) {
       console.error('Google callback error:', error);
