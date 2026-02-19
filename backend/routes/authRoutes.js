@@ -29,7 +29,8 @@ router.get(
         { 
           userId: req.user.id,
           email: req.user.email,
-          name: req.user.name 
+          name: req.user.name,
+          type: 'user'
         },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '7d' }
