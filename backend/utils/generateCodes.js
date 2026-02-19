@@ -28,7 +28,7 @@ export const generatePaymentId = () => {
 };
 
 export const generateReferralLink = (referralCode) => {
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const baseUrl = process.env.FRONTEND_URL || 'https://win.fortunefriends.co.in';
   return `${baseUrl}/register?ref=${referralCode}`;
 };
 

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
+import { generateReferralLink } from '../utils/generateCodes.js';
 
 export const adminLogin = async (req, res) => {
   try {
@@ -765,7 +766,7 @@ export const createUser = async (req, res) => {
     // Generate unique user_id and referral code
     const userId = `FF${Date.now().toString(36).toUpperCase().substring(0, 8)}`;
     const referralCode = `REF${Date.now().toString(36).toUpperCase()}`;
-    const referralLink = `http://localhost:5173/register?ref=${referralCode}`;
+    const referralLink = generateReferralLink(referralCode);
     
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
