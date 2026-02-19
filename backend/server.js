@@ -109,8 +109,13 @@ try {
   console.error('Failed to initialize access logging:', e && (e.stack || e));
 }
 
-// Serve uploaded files with CORS headers using setHeaders in express.static
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files with CORS headers
+app.use('/uploads', cors({ origin: true }), express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, filePath) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Ensure upload directories exist to prevent ENOENT on file uploads
  
