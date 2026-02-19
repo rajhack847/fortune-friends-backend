@@ -56,12 +56,22 @@ function Profile() {
   const fetchProfile = async () => {
     try {
       const res = await userAPI.getProfile();
-      setProfile(res.data.data);
+      const profileData = res.data.data;
+      setProfile(profileData);
       setEditData({
-        address: res.data.data.address || '',
-        pincode: res.data.data.pincode || '',
+        address: profileData.address || '',
+        pincode: profileData.pincode || '',
         profile_picture: null
       });
+      
+      // Update localStorage user data with referral info
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const updatedUser = {
+        ...storedUser,
+        referralCode: profileData.referral_code,
+        referralLink: profileData.referral_link
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (err) {
       setMessage('Failed to load profile');
     }
