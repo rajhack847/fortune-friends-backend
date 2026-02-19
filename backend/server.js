@@ -7,10 +7,12 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
-
+import session from 'express-session';
+import passport from './config/passport.js';
 
 // Import routes
 import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import referralRoutes from './routes/referralRoutes.js';
@@ -57,6 +59,23 @@ app.use(morgan('dev'));
 // Limit JSON/body sizes to prevent large payload abuse
 app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+
+// Session configuration for passport
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'fortune-friends-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Simple in-memory rate limiter (per-IP)
 const rateStore = new Map();
@@ -134,6 +153,7 @@ ensureDir(path.join(uploadBase, 'payments'));
 ensureDir(path.join(uploadBase, 'lottery'));
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
