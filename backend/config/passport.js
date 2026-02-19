@@ -40,8 +40,51 @@ passport.use(
         );
 
         if (existingUsers.length > 0) {
-          // User exists, log them in
-          return done(null, existingUsers[0]);
+          // User exists, check if they need missing fields
+          const user = existingUsers[0];
+          
+          if (!user.user_id || !user.referral_code || !user.referral_link) {
+            // Generate missing fields
+            let userId = user.user_id;
+            let userReferralCode = user.referral_code;
+            let isUnique = false;
+            
+            while (!isUnique) {
+              if (!userId) userId = generateUserId();
+              if (!userReferralCode) userReferralCode = generateReferralCode();
+              
+              const [duplicate] = await pool.query(
+                'SELECT * FROM users WHERE (user_id = ? AND id != ?) OR (referral_code = ? AND id != ?)',
+                [userId, user.id, userReferralCode, user.id]
+              );
+              
+              if (duplicate.length === 0) {
+                isUnique = true;
+              } else {
+                // Reset to try again
+                userId = user.user_id;
+                userReferralCode = user.referral_code;
+              }
+            }
+            
+            const referralLink = generateReferralLink(userReferralCode);
+            
+            // Update user with missing fields
+            await pool.query(
+              'UPDATE users SET user_id = ?, referral_code = ?, referral_link = ? WHERE id = ?',
+              [userId, userReferralCode, referralLink, user.id]
+            );
+            
+            // Fetch updated user
+            const [updatedUsers] = await pool.query(
+              'SELECT * FROM users WHERE id = ?',
+              [user.id]
+            );
+            
+            return done(null, updatedUsers[0]);
+          }
+          
+          return done(null, user);
         }
 
         // Check if email is already registered with local auth
@@ -52,15 +95,46 @@ passport.use(
 
         if (emailUsers.length > 0) {
           // Link Google account to existing user
+          const user = emailUsers[0];
+          
+          // Generate missing fields if needed
+          let userId = user.user_id;
+          let userReferralCode = user.referral_code;
+          let referralLink = user.referral_link;
+          
+          if (!userId || !userReferralCode || !referralLink) {
+            let isUnique = false;
+            
+            while (!isUnique) {
+              if (!userId) userId = generateUserId();
+              if (!userReferralCode) userReferralCode = generateReferralCode();
+              
+              const [duplicate] = await pool.query(
+                'SELECT * FROM users WHERE (user_id = ? AND id != ?) OR (referral_code = ? AND id != ?)',
+                [userId, user.id, userReferralCode, user.id]
+              );
+              
+              if (duplicate.length === 0) {
+                isUnique = true;
+              } else {
+                // Reset to try again
+                userId = user.user_id;
+                userReferralCode = user.referral_code;
+              }
+            }
+            
+            referralLink = generateReferralLink(userReferralCode);
+          }
+          
           await pool.query(
-            'UPDATE users SET google_id = ?, auth_provider = ?, email_verified = TRUE WHERE id = ?',
-            [googleId, 'google', emailUsers[0].id]
+            'UPDATE users SET google_id = ?, auth_provider = ?, email_verified = TRUE, user_id = ?, referral_code = ?, referral_link = ? WHERE id = ?',
+            [googleId, 'google', userId, userReferralCode, referralLink, user.id]
           );
           
           // Fetch updated user with all fields
           const [updatedUsers] = await pool.query(
             'SELECT * FROM users WHERE id = ?',
-            [emailUsers[0].id]
+            [user.id]
           );
           
           return done(null, updatedUsers[0]);
