@@ -1,6 +1,11 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import pool from './database.js';
+import { 
+  generateUserId, 
+  generateReferralCode, 
+  generateReferralLink 
+} from '../utils/generateCodes.js';
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -51,26 +56,49 @@ passport.use(
             'UPDATE users SET google_id = ?, auth_provider = ?, email_verified = TRUE WHERE id = ?',
             [googleId, 'google', emailUsers[0].id]
           );
-          return done(null, emailUsers[0]);
+          
+          // Fetch updated user with all fields
+          const [updatedUsers] = await pool.query(
+            'SELECT * FROM users WHERE id = ?',
+            [emailUsers[0].id]
+          );
+          
+          return done(null, updatedUsers[0]);
         }
 
         // Create new user with Google auth
+        // Generate unique codes
+        let userId, userReferralCode, isUnique = false;
+        
+        while (!isUnique) {
+          userId = generateUserId();
+          userReferralCode = generateReferralCode();
+          
+          const [duplicate] = await pool.query(
+            'SELECT * FROM users WHERE user_id = ? OR referral_code = ?',
+            [userId, userReferralCode]
+          );
+          
+          if (duplicate.length === 0) {
+            isUnique = true;
+          }
+        }
+        
+        const referralLink = generateReferralLink(userReferralCode);
+        
         const [result] = await pool.query(
-          `INSERT INTO users (email, name, google_id, auth_provider, email_verified, kyc_status) 
-           VALUES (?, ?, ?, 'google', TRUE, 'not_submitted')`,
-          [email, name, googleId]
+          `INSERT INTO users (user_id, email, name, google_id, auth_provider, email_verified, kyc_status, referral_code, referral_link, mobile) 
+           VALUES (?, ?, ?, ?, 'google', TRUE, 'not_submitted', ?, ?, ?)`,
+          [userId, email, name, googleId, userReferralCode, referralLink, email] // Use email as mobile temporarily
         );
 
-        const newUser = {
-          id: result.insertId,
-          email,
-          name,
-          google_id: googleId,
-          auth_provider: 'google',
-          email_verified: true,
-        };
+        // Fetch the complete user record with all fields
+        const [newUsers] = await pool.query(
+          'SELECT * FROM users WHERE id = ?',
+          [result.insertId]
+        );
 
-        return done(null, newUser);
+        return done(null, newUsers[0]);
       } catch (error) {
         console.error('Google OAuth error:', error);
         return done(error, null);
