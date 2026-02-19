@@ -11,32 +11,7 @@ function Dashboard({ user }) {
 
   useEffect(() => {
     fetchDashboardData();
-    refreshUserData();
   }, []);
-
-  const refreshUserData = async () => {
-    // Only refresh if referralLink is missing
-    if (user.referralLink) return;
-    
-    try {
-      const res = await userAPI.getProfile();
-      const profileData = res.data.data;
-      
-      // Update localStorage with fresh referral data
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const updatedUser = {
-        ...storedUser,
-        referralCode: profileData.referral_code,
-        referralLink: profileData.referral_link
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      // Force a page reload to update the user prop
-      window.location.reload();
-    } catch (err) {
-      console.error('Failed to refresh user data:', err);
-    }
-  };
 
   const fetchDashboardData = async () => {
     try {
@@ -176,19 +151,29 @@ function Dashboard({ user }) {
         <h2>🔗 Share Your Referral Link</h2>
         <p className="text-muted">Get bonus entries for every friend who purchases a ticket!</p>
         
-        <div className="referral-code-box">
-          <div>
-            <div className="referral-label">Your Referral Code</div>
-            <div className="referral-code">{user.referralCode}</div>
+        {user.referralLink ? (
+          <>
+            <div className="referral-code-box">
+              <div>
+                <div className="referral-label">Your Referral Code</div>
+                <div className="referral-code">{user.referralCode}</div>
+              </div>
+              <button onClick={copyReferralLink} className="btn btn-primary">
+                Copy Link
+              </button>
+            </div>
+            
+            <div className="referral-link-display">
+              {user.referralLink}
+            </div>
+          </>
+        ) : (
+          <div style={{ padding: '20px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', marginTop: '12px' }}>
+            <p style={{ margin: 0, color: '#856404' }}>
+              ⚠️ <strong>Please log out and sign in again</strong> to generate your referral link.
+            </p>
           </div>
-          <button onClick={copyReferralLink} className="btn btn-primary">
-            Copy Link
-          </button>
-        </div>
-        
-        <div className="referral-link-display">
-          {user.referralLink}
-        </div>
+        )}
       </div>
       
       {lottery && (
