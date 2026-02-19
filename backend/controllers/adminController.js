@@ -594,7 +594,7 @@ export const getTopReferrers = async (req, res) => {
     const [rows] = await pool.query(
       `SELECT u.id, u.name, u.email, u.referral_code, COUNT(r.id) AS referrals_count
        FROM users u
-       LEFT JOIN referrals r ON r.referrer_id = u.id AND (r.status = 'completed' OR r.payment_status = 'paid' OR r.status = 'paid')
+       LEFT JOIN referrals r ON r.referrer_id = u.id AND r.payment_status = 'paid'
        GROUP BY u.id, u.name, u.email, u.referral_code
        ORDER BY referrals_count DESC
        LIMIT ?`,
