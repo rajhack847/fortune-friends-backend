@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { userAPI, ticketAPI, referralAPI } from '../services/api';
 
+const backendURL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://fortune-friends-backend-1.onrender.com';
+
 // Shared styles
 const styles = {
   page: { maxWidth: 980, margin: '24px auto', fontFamily: "Inter, Roboto, -apple-system, 'Segoe UI', Arial" },
@@ -155,7 +157,7 @@ function Profile() {
   return (
     <div style={styles.page}>
       <div style={styles.headerRow}>
-        <img src={profile.profile_picture_url || '/images/avatar-placeholder.svg'} alt="Profile" style={styles.avatarSmall} />
+        <img src={profile.profile_picture_url ? `${backendURL}${profile.profile_picture_url}` : '/images/avatar-placeholder.svg'} alt="Profile" style={styles.avatarSmall} />
         <div>
           <h2 style={{ margin: 0, fontSize: 22 }}>{profile.name}</h2>
           <div style={{ color: '#666', marginTop: 6 }}>{profile.email} • {profile.mobile}</div>
@@ -171,7 +173,7 @@ function Profile() {
         {/* Left panel: avatar + actions */}
         <div style={styles.leftCard}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <img src={profile.profile_picture_url || '/images/avatar-placeholder.svg'} alt="avatar" style={{ width: 180, height: 180, borderRadius: 12, objectFit: 'cover', border: '1px solid #eee' }} />
+            <img src={profile.profile_picture_url ? `${backendURL}${profile.profile_picture_url}` : '/images/avatar-placeholder.svg'} alt="avatar" style={{ width: 180, height: 180, borderRadius: 12, objectFit: 'cover', border: '1px solid #eee' }} />
             <label style={{ display: 'inline-block', width: '100%' }}>
               <input ref={profileInputRef} type="file" accept="image/*" onChange={handleProfilePic} style={{ display: 'none' }} />
               <button type="button" style={{...styles.primaryBtn, width: '100%'}} onClick={() => profileInputRef.current && profileInputRef.current.click()}>Upload Photo</button>
