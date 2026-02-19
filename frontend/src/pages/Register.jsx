@@ -41,7 +41,8 @@ function Register({ onLogin }) {
   };
 
   const handleGoogleSignIn = () => {
-    const backendURL = import.meta.env.VITE_API_URL || 'https://fortune-friends-backend-1.onrender.com';
+    // Use base backend URL without /api since auth routes are already under /api
+    const backendURL = 'https://fortune-friends-backend-1.onrender.com';
     const referQuery = referralCode ? `?state=${encodeURIComponent(JSON.stringify({ ref: referralCode }))}` : '';
     window.location.href = `${backendURL}/api/auth/google${referQuery}`;
   };
