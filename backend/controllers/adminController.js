@@ -107,12 +107,12 @@ export const createLotteryEvent = async (req, res) => {
       });
     }
 
-    // Get image filename if uploaded
-    const imageName = req.file ? req.file.filename : null;
+    // Get image URL if uploaded
+    const imageUrl = req.file ? `/uploads/lottery/${req.file.filename}` : null;
     
     const [result] = await pool.query(
-      `INSERT INTO fortune_draw_events (name, description, ticket_price, prize_type, prize_amount, prize_details, draw_date, disclaimer, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
+      `INSERT INTO fortune_draw_events (name, description, ticket_price, prize_type, prize_amount, prize_details, draw_date, disclaimer, image_url, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
       [
         name, 
         description, 
@@ -121,14 +121,15 @@ export const createLotteryEvent = async (req, res) => {
         type === 'cash' ? prizeAmount : null,
         type === 'car' ? prizeDetails : null,
         drawDate, 
-        disclaimer
+        disclaimer,
+        imageUrl
       ]
     );
     
     res.status(201).json({
       success: true,
       message: 'Lottery event created successfully',
-      data: { id: result.insertId, imageName }
+      data: { id: result.insertId }
     });
   } catch (error) {
     console.error('Create lottery error:', error);
@@ -285,7 +286,14 @@ export const updateLotteryEvent = async (req, res) => {
       values.push(disclaimer);
     }
     
-    if (updates.length === 0 && !req.file) {
+    // Handle image upload
+    if (req.file) {
+      const imageUrl = `/uploads/lottery/${req.file.filename}`;
+      updates.push('image_url = ?');
+      values.push(imageUrl);
+    }
+    
+    if (updates.length === 0) {
       return res.status(400).json({ 
         success: false, 
         message: 'No fields to update' 
@@ -301,12 +309,10 @@ export const updateLotteryEvent = async (req, res) => {
       );
     }
     
-    const imageName = req.file ? req.file.filename : null;
-    
     res.json({
       success: true,
       message: 'Lottery event updated successfully',
-      data: { id, imageName }
+      data: { id }
     });
   } catch (error) {
     console.error('Update lottery error:', error);

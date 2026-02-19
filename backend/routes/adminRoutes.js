@@ -33,15 +33,16 @@ const __dirname = path.dirname(__filename);
 // Configure multer for car image uploads
 const carImageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../frontend/public/images');
+    const uploadDir = path.join(__dirname, '../uploads/lottery');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Keep original filename (dzire.jpg or crysta.jpg)
-    cb(null, file.originalname);
+    // Generate unique filename: lottery-{timestamp}-{random}.{ext}
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `lottery-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
 });
 

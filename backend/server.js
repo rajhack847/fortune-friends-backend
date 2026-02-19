@@ -126,6 +126,7 @@ const ensureDir = (p) => {
 ensureDir(uploadBase);
 ensureDir(path.join(uploadBase, 'profiles'));
 ensureDir(path.join(uploadBase, 'payments'));
+ensureDir(path.join(uploadBase, 'lottery'));
 
 // API Routes
 app.use('/api/users', userRoutes);
