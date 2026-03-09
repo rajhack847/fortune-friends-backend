@@ -24,6 +24,8 @@ import { getAdminAccounts, createAdminAccount, updateAdminAccount, deleteAdminAc
 import { getRolePermissions } from '../controllers/adminController.js';
 import { authenticateAdmin, requireRole } from '../middleware/auth.js';
 import { logAdminAction } from '../middleware/auditLog.js';
+import { getAllWithdrawals, processWithdrawal, getSystemSettings, updateSystemSettings, getWalletStats } from '../controllers/walletController.js';
+import { getAdminBinaryTree } from '../controllers/binaryTreeController.js';
 
 const router = express.Router();
 
@@ -116,5 +118,13 @@ router.get('/accounts/role-permissions', authenticateAdmin, requireRole('super_a
 
 // Change own password
 router.post('/change-password', authenticateAdmin, changeMyPassword);
+
+// Wallet & Withdrawal management
+router.get('/withdrawals', authenticateAdmin, getAllWithdrawals);
+router.patch('/withdrawals/:id', authenticateAdmin, requireRole('super_admin', 'admin'), logAdminAction('PROCESS_WITHDRAWAL', 'withdrawal'), processWithdrawal);
+router.get('/system-settings', authenticateAdmin, getSystemSettings);
+router.put('/system-settings', authenticateAdmin, requireRole('super_admin', 'admin'), logAdminAction('UPDATE_SYSTEM_SETTINGS', 'system_settings'), updateSystemSettings);
+router.get('/wallet-stats', authenticateAdmin, getWalletStats);
+router.get('/binary-tree/:userId', authenticateAdmin, getAdminBinaryTree);
 
 export default router;

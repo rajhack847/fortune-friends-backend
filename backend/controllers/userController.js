@@ -91,6 +91,8 @@ import {
   generateReferralCode, 
   generateReferralLink 
 } from '../utils/generateCodes.js';
+import { placeInBinaryTree } from './binaryTreeController.js';
+import { ensureWallet } from './walletController.js';
 
 export const registerUser = async (req, res) => {
   const connection = await pool.getConnection();
@@ -150,20 +152,39 @@ export const registerUser = async (req, res) => {
     
     const newUserId = result.insertId;
     
-    // If user was referred, create referral record
+    // If user was referred, only create referral record if referrer is eligible
+    // (i.e., referrer has at least one approved payment or at least one active ticket)
     if (referralCode) {
       const [referrer] = await connection.query(
-        'SELECT id FROM users WHERE referral_code = ?',
+        `SELECT u.id,
+                (EXISTS(SELECT 1 FROM payments p WHERE p.user_id = u.id AND p.status = 'approved')
+                 OR EXISTS(SELECT 1 FROM tickets t WHERE t.user_id = u.id AND t.status = 'active')) AS eligible
+         FROM users u
+         WHERE u.referral_code = ? LIMIT 1`,
         [referralCode]
       );
-      
-      if (referrer.length > 0) {
+
+      if (referrer.length > 0 && referrer[0].eligible) {
         await connection.query(
           `INSERT INTO referrals (referrer_id, referred_user_id, payment_status)
            VALUES (?, ?, 'pending')`,
           [referrer[0].id, newUserId]
         );
+
+        // Place in binary tree under sponsor
+        try {
+          await placeInBinaryTree(connection, newUserId, referrer[0].id);
+        } catch (treeErr) {
+          console.error('Binary tree placement error (non-fatal):', treeErr.message);
+        }
       }
+    }
+
+    // Ensure wallet exists for new user
+    try {
+      await ensureWallet(connection, newUserId);
+    } catch (walletErr) {
+      console.error('Wallet creation error (non-fatal):', walletErr.message);
     }
     
     await connection.commit();
@@ -175,6 +196,7 @@ export const registerUser = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
     
+    // By default new users haven't purchased yet — do not expose referral code/link
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
@@ -184,8 +206,8 @@ export const registerUser = async (req, res) => {
         name,
         mobile,
         email,
-        referralCode: userReferralCode,
-        referralLink,
+        referralCode: null,
+        referralLink: null,
         token
       }
     });
@@ -251,6 +273,17 @@ export const loginUser = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
     
+    // Only expose referral code/link to users who have purchased at least one ticket
+    const [purchaseCheck] = await pool.query(
+      `SELECT (
+         EXISTS(SELECT 1 FROM payments p WHERE p.user_id = ? AND p.status = 'approved')
+         OR EXISTS(SELECT 1 FROM tickets t WHERE t.user_id = ? AND t.status = 'active')
+       ) AS has_purchased`,
+      [user.id, user.id]
+    );
+
+    const hasPurchased = purchaseCheck && purchaseCheck[0] && purchaseCheck[0].has_purchased;
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -260,8 +293,8 @@ export const loginUser = async (req, res) => {
         name: user.name,
         mobile: user.mobile,
         email: user.email,
-        referralCode: user.referral_code,
-        referralLink: user.referral_link,
+        referralCode: hasPurchased ? user.referral_code : null,
+        referralLink: hasPurchased ? user.referral_link : null,
         token
       }
     });
@@ -291,9 +324,24 @@ export const getUserProfile = async (req, res) => {
       });
     }
     
+    // Only show referral fields if user has purchased
+    const userRow = users[0];
+    const [purchaseCheck] = await pool.query(
+      `SELECT (
+         EXISTS(SELECT 1 FROM payments p WHERE p.user_id = ? AND p.status = 'approved')
+         OR EXISTS(SELECT 1 FROM tickets t WHERE t.user_id = ? AND t.status = 'active')
+       ) AS has_purchased`,
+      [userRow.id, userRow.id]
+    );
+    const hasPurchased = purchaseCheck && purchaseCheck[0] && purchaseCheck[0].has_purchased;
+    if (!hasPurchased) {
+      userRow.referral_code = null;
+      userRow.referral_link = null;
+    }
+
     res.json({
       success: true,
-      data: users[0]
+      data: userRow
     });
   } catch (error) {
     console.error('Get profile error:', error);

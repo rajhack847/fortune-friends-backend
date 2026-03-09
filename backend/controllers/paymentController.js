@@ -1,6 +1,8 @@
 import pool from '../config/database.js';
 import { generatePaymentId, hashFile } from '../utils/generateCodes.js';
 import crypto from 'crypto';
+import { placeInBinaryTree, processCommissions } from './binaryTreeController.js';
+import { ensureWallet } from './walletController.js';
 
 // Create Razorpay order (server-side)
 export const createRazorpayOrder = async (req, res) => {
@@ -102,6 +104,19 @@ export const confirmRazorpayPayment = async (req, res) => {
            WHERE referred_user_id = ? AND payment_status = 'pending'`,
           [result.insertId, userId]
         );
+
+        // Process binary tree placement and commissions
+        try {
+          const [referral] = await connection.query(
+            'SELECT referrer_id FROM referrals WHERE referred_user_id = ? LIMIT 1', [userId]
+          );
+          const sponsorId = referral.length > 0 ? referral[0].referrer_id : null;
+          await placeInBinaryTree(connection, userId, sponsorId);
+          await ensureWallet(connection, userId);
+          await processCommissions(connection, userId, result.insertId);
+        } catch (commErr) {
+          console.error('Commission processing error (non-fatal):', commErr.message);
+        }
       }
 
       await connection.commit();
@@ -255,6 +270,19 @@ export const handleRazorpayWebhook = async (req, res) => {
              WHERE referred_user_id = ? AND payment_status = 'pending'`,
             [result.insertId, userId]
           );
+
+          // Process binary tree placement and commissions
+          try {
+            const [referral] = await connection.query(
+              'SELECT referrer_id FROM referrals WHERE referred_user_id = ? LIMIT 1', [userId]
+            );
+            const sponsorId = referral.length > 0 ? referral[0].referrer_id : null;
+            await placeInBinaryTree(connection, userId, sponsorId);
+            await ensureWallet(connection, userId);
+            await processCommissions(connection, userId, result.insertId);
+          } catch (commErr) {
+            console.error('Webhook commission processing error (non-fatal):', commErr.message);
+          }
         }
 
         await connection.commit();
@@ -399,6 +427,19 @@ export const verifyPayment = async (req, res) => {
          WHERE referred_user_id = ? AND payment_status = 'pending'`,
         [payment.id, payment.user_id]
       );
+
+      // Process binary tree placement and commissions
+      try {
+        const [referral] = await connection.query(
+          'SELECT referrer_id FROM referrals WHERE referred_user_id = ? LIMIT 1', [payment.user_id]
+        );
+        const sponsorId = referral.length > 0 ? referral[0].referrer_id : null;
+        await placeInBinaryTree(connection, payment.user_id, sponsorId);
+        await ensureWallet(connection, payment.user_id);
+        await processCommissions(connection, payment.user_id, payment.id);
+      } catch (commErr) {
+        console.error('Verify commission processing error (non-fatal):', commErr.message);
+      }
     }
     
     await connection.commit();

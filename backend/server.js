@@ -23,6 +23,8 @@ import homeSettingsRoutes from './routes/homeSettingsRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
 import privateMessageRoutes from './routes/privateMessageRoutes.js';
+import walletRoutes from './routes/walletRoutes.js';
+import binaryTreeRoutes from './routes/binaryTreeRoutes.js';
 
 // Import Socket.IO
 import initializeSocket from './socket.js';
@@ -165,6 +167,8 @@ app.use('/api/home-settings', homeSettingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/chat/rooms', roomRoutes);
 app.use('/api/chat/private', privateMessageRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/binary-tree', binaryTreeRoutes);
 
 // Protect login endpoints with a stricter rate limit to prevent brute-force
 app.use('/api/users/login', rateLimit({ windowMs: 60 * 1000, max: 6, message: 'Too many login attempts, please wait a minute.' }));
